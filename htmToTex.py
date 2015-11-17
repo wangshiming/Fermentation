@@ -172,9 +172,7 @@ while(Line):
         Line=re.sub(r'_{3,}', r'\underline{\quad }',Line)
         Line=re.sub(r'\xc2\xb5',r'$\mu$', Line)
         if(Question and Line):
-            #print 'Line='; print Line
-            Obj=re.search(r'([\d*])$', Question)
-#            print Obj.group(1);sys.exit()
+            Obj=re.search(r'(\w*)$', Question)
             print Line+r' ({\color{red}{Q'+Obj.group(1)+r'}})\\'
             Question=''
         elif Line: 
