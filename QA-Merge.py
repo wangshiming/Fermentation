@@ -38,4 +38,4 @@ while(QLine):
    # print 'test='; print ALine; sys.exit()
     QLine=QFile.readline()
 
-
+QFile.close()

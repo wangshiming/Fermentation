@@ -4,7 +4,7 @@ f=open(sys.argv[1],'r')
 StrLists=[]
 Str=f.readline()
 i=1
-while(Str):
+while(Str): ## Add 0.5em before the choice
     Str=Str.strip()
     while(not ('color{black}' in Str) and Str):
         if(not(r'\\' == Str.strip())):
@@ -23,9 +23,18 @@ while(Str):
     if (r'\end{document}' in Str):
         print Str
         break
-    Str=re.sub(r'\[.*\]|\\','',Str)
+#    print Str##
+    Str=re.sub(r'\\\\.*','',Str)
+ #   print Str; sys.exit()##
     print Str+r'\\[0.5em]'
     print r'\color{black}'
     StrLists=[]
     Str=f.readline()
+
+Obj=re.search(r'(.*)_)',sys.argv[1])
+w=open(Obj.group(1),'w')
+f.position(0)
+
 f.close()
+w.close()
+
