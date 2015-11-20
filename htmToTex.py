@@ -3,14 +3,22 @@
 import sys,re
 NewFrame=1
 Question=''
+def getStringPattern(Str):
+    StrPattern=Str
+    StrPattern=re.sub(r'\(',r'\(',Str)
+    StrPattern=re.sub(r'\)',r'\)',StrPattern)
+    StrPattern=re.sub(r'\[',r'\[',StrPattern)
+    StrPattern=re.sub(r'\]',r'\]',StrPattern)
+    ##StrPattern=re.sub('\\\\',r'\\\\',StrPattern) ##Hard; Str=\\hello; when print out: \hello
+    return StrPattern
 def ProcessSpecialChar(Line):
-    #Line=re.sub(r'\n', '', Line)
-    #Line=re.sub(r'^ *', '', Line)
-    Line=Line.strip()
     Line=re.sub('μ',r'$\mu$', Line)
     Line=re.sub('–','-', Line)
     Line=re.sub(r'\xc2\xb5',r'$\mu$', Line)
     Line=re.sub(r'\xce\xbc',r'$\mu$', Line)
+    Line=re.sub(r'%', r'\%',Line)
+    Line=re.sub(r'&gt;', r' > ', Line)
+    Line=re.sub(r'_{3,}', r'\underline{\quad }',Line)
     return Line
 def PrintFrame():
     global NewFrame
@@ -20,29 +28,38 @@ def PrintFrame():
     print('\n')
     print(r'\begin{frame}[shrink] {} ')
     print(r'\color{blue}')
+def ProcessMath(Line):
+    Line=re.sub(r'<script type="math/tex".*?>',r'$',Line)
+    Line=re.sub(r'</script>',r'$',Line)
+    Obj=re.search(r'(\$.*?\$)',Line)
+    #print Obj.group(1); print 'IN MATH==';sys.exit()
+    return Obj.group(1)
 
 def ProcessSubPattern(Line):
     patternStrings=[]
     Line=ProcessSpecialChar(Line)
     Line=re.sub(r'<font.*?>','',Line)
     Line=re.sub(r'</sub>|</sup>', '}$', Line) 
-#    print 'Line='
-#    print Line; sys.exit()
+    #print Line; print 'LINE='
     patternStrings=re.findall(r'([0-9A-za-z]*<sub)', Line)
     for Str in patternStrings:
+#        patternStr=getStringPattern(Str)
+ #       Line=re.sub(patternStr,r'$'+Str,Line)
         Obj=re.search(r'(.*)<sub',Str)
         if Obj:
             subStr=Obj.group(1)
-            Line=re.sub(Str, r'$'+subStr+r'_{<sub',Line)
+            StrPat=getStringPattern(Str)
+            Line=re.sub(StrPat, r'$'+subStr+r'_{<sub',Line)
+       # print StrPat;print subStr print 'LINE='
     patternStrings=re.findall(r'([0-9A-za-z]*<sup)', Line)
-#    print Line; print patternStrings;   
     for Str in patternStrings:
         Obj=re.search(r'(.*)<sup',Str)
         if Obj:
             subStr=Obj.group(1)
-            Line=re.sub(Str, r'$'+subStr+r'^{<sup',Line)
-    Line=re.sub(r'<.*?>','', Line)
-
+            StrPat=getStringPattern(Str)
+            Line=re.sub(StrPat, r'$'+subStr+r'^{<sup',Line)
+    Line=re.sub(r'<.*?>', '', Line)
+    Line=ProcessSpecialChar(Line)
     return Line
 
 def ProcessTable(f):
@@ -144,6 +161,7 @@ while(Line):
             Line=f.readline()
             FirstParagraph=1
             FirstInput=1
+            MathSep=''
             if not Line:
                 break
         Line=f.readline()
@@ -158,22 +176,19 @@ while(Line):
 
     searchObj=re.search(r'<p>', Line)
     if searchObj:
-        searchObj_1=re.search(r'type="math/tex">(.*?)<', Line)
+        searchObj_1=re.search(r'type="math/tex"', Line)
         if searchObj_1:
-            temStr=searchObj_1.group(1); 
-            print '$'+temStr+'$';
+            Line=ProcessMath(Line)
+
         searchObj_2=re.search(r'<sub.*?</sub>', Line)
         searchObj_3=re.search(r'<sup.*?</sup>', Line)
         if (searchObj_2 or searchObj_3):
             Line=ProcessSubPattern(Line)
-        Line=re.sub(r'<.*?>','', Line)
-        
-        Line=re.sub(r'%', r'\%',Line)
-        Line=re.sub(r'_{3,}', r'\underline{\quad }',Line)
-        Line=re.sub(r'\xc2\xb5',r'$\mu$', Line)
+        Line=re.sub(r'<.*?>', '', Line)
+        Line=ProcessSpecialChar(Line)
         if(Question and Line):
             Obj=re.search(r'(\w*)$', Question)
-            print Line+r' ({\color{red}{Q'+Obj.group(1)+r'}})\\'
+            print Line+r' ({\color{green}{Q'+Obj.group(1)+r'}})\\'
             Question=''
         elif Line: 
             print Line+ r'\\'
@@ -185,18 +200,17 @@ while(Line):
             print r'\setlength{\parindent}{-0.4cm}'
         FirstInput=0 
 
-        searchObj_1=re.search(r'type="math/tex".*?>(.*?)<', Line)
+        searchObj_1=re.search(r'type="math/tex"', Line)
         if searchObj_1:
+            Line=ProcessMath(Line)
             MathSep=MATHSEP
-            temStr=searchObj_1.group(1); 
-            Line= '$'+temStr+'$';    
+                     
         searchObj_2=re.search(r'<sub.*?</sub>', Line)
         searchObj_3=re.search(r'<sup.*?</sup>', Line)
         if (searchObj_2 or searchObj_2):
             Line=ProcessSubPattern(Line)
         Line=re.sub(r'<.*?>', '', Line)
         Line=ProcessSpecialChar(Line)
-
         if(re.search(r'correct_answer="true"',PreviousLine)):
             print r'{\color{red}$\bullet$} '+ Line+ r' \\'+MathSep; 
         elif(Line):

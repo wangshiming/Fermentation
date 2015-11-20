@@ -31,10 +31,5 @@ while(Str): ## Add 0.5em before the choice
     StrLists=[]
     Str=f.readline()
 
-Obj=re.search(r'(.*)_)',sys.argv[1])
-w=open(Obj.group(1),'w')
-f.position(0)
-
 f.close()
-w.close()
 
