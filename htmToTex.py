@@ -36,28 +36,30 @@ def ProcessMath(Line):
     return Obj.group(1)
 
 def ProcessSubPattern(Line):
-    patternStrings=[]
+    patternStrings=set()
     Line=ProcessSpecialChar(Line)
-    Line=re.sub(r'<font.*?>','',Line)
+    Strings=re.findall(r'<.*?>',Line) #get rid of non <sub...> tag
+    for Str in Strings:
+        if(not(r'sub' in Str)):
+            StrPat=getStringPattern(Str)
+            Line=re.sub(StrPat,'',Line)
+
     Line=re.sub(r'</sub>|</sup>', '}$', Line) 
-    #print Line; print 'LINE='
-    patternStrings=re.findall(r'([0-9A-za-z]*<sub)', Line)
-    for Str in patternStrings:
-#        patternStr=getStringPattern(Str)
- #       Line=re.sub(patternStr,r'$'+Str,Line)
-        Obj=re.search(r'(.*)<sub',Str)
-        if Obj:
-            subStr=Obj.group(1)
-            StrPat=getStringPattern(Str)
-            Line=re.sub(StrPat, r'$'+subStr+r'_{<sub',Line)
-       # print StrPat;print subStr print 'LINE='
-    patternStrings=re.findall(r'([0-9A-za-z]*<sup)', Line)
-    for Str in patternStrings:
-        Obj=re.search(r'(.*)<sup',Str)
-        if Obj:
-            subStr=Obj.group(1)
-            StrPat=getStringPattern(Str)
-            Line=re.sub(StrPat, r'$'+subStr+r'^{<sup',Line)
+    Strings=re.findall(r'([0-9A-za-z]{1,}<sub)', Line)
+    for Str in Strings:
+        patternStrings.add(Str)
+    for Str in patternStrings: 
+        StrPat=getStringPattern(Str)
+        Line=re.sub(StrPat, r'$'+Str,Line)
+    Line=re.sub(r'<sub',r'_{<sub',Line)
+    
+    Strings=re.findall(r'([0-9A-za-z]{1,}<sup)', Line)
+    for Str in Strings:
+        patternStrings.add(Str)
+    for Str in patternStrings: 
+        StrPat=getStringPattern(Str)
+        Line=re.sub(StrPat, r'$'+Str,Line)
+    Line=re.sub(r'<sup',r'^{<sup',Line)
     Line=re.sub(r'<.*?>', '', Line)
     Line=ProcessSpecialChar(Line)
     return Line
@@ -69,18 +71,17 @@ def ProcessTable(f):
     tableHead=r'\begin{tabular}[ ]{l'
     while(not(re.search(r'</table>',Line))):
         Line=f.readline()
+        Line=Line.strip()
         if(re.search(r'</table>',Line)):
             break
-        Obj1=re.search(r'<th>', Line)
-        Obj2=re.search(r'<td>', Line)
-        if(Obj1 or Obj2):
-            Line=ProcessSubPattern(Line)
-        else:
-            Line=re.sub(r'<.*?>','', Line)
-        if(Obj1):
-            List.append(Line)
-        if(Obj2):
-            subList.append(Line)
+        temList=re.findall(r'<th>.*?</th>',Line)
+        for i in range(0,len(temList)):
+            List.append(ProcessSubPattern(temList[i]))
+
+        temList=re.findall(r'<td>.*?</td>',Line)
+        for i in range(0,len(temList)):
+            subList.append(ProcessSubPattern(temList[i]))
+
     Line=List[0]
     for Item in List[1:]:
         Line=Line+r' & '+Item
@@ -171,10 +172,10 @@ while(Line):
             break
         PrintFrame()
 
-    if(re.search(r'<table>', Line)):
+    if(re.search(r'<table', Line)):
         ProcessTable(f)
 
-    searchObj=re.search(r'<p>', Line)
+    searchObj=re.search(r'<p', Line)
     if searchObj:
         searchObj_1=re.search(r'type="math/tex"', Line)
         if searchObj_1:
@@ -193,7 +194,7 @@ while(Line):
         elif Line: 
             print Line+ r'\\'
 
-    searchObj_3=re.search(r'<input ', Line)
+    searchObj_3=re.search(r'<input', Line)
     if searchObj_3:
         if(FirstInput):
             print r'\color{black}'
